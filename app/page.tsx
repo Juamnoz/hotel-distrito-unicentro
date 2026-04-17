@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, MessageSquare, Calendar, Info,
   Wifi, Coffee, Car, Shield, MapPin, Users,
+  X, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import BookingEngine from "@/components/BookingEngine";
 import HotelChat from "@/components/HotelChat";
@@ -117,9 +118,103 @@ function RoomCard({ room, i }: { room: (typeof ROOMS)[0]; i: number }) {
   );
 }
 
+function Lightbox({ images, index, onClose }: { images: { src: string; alt: string }[]; index: number; onClose: () => void }) {
+  const [current, setCurrent] = useState(index);
+  const prev = () => setCurrent((c) => (c - 1 + images.length) % images.length);
+  const next = () => setCurrent((c) => (c + 1) % images.length);
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      onClick={onClose}
+    >
+      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)" }} />
+
+      {/* Close */}
+      <button
+        onClick={onClose}
+        className="absolute top-5 right-5 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+        style={{ background: "rgba(255,255,255,0.1)", color: "#fff" }}
+      >
+        <X size={18} />
+      </button>
+
+      {/* Counter */}
+      <span className="absolute top-5 left-1/2 -translate-x-1/2 text-xs font-medium z-10" style={{ color: "rgba(255,255,255,0.45)" }}>
+        {current + 1} / {images.length}
+      </span>
+
+      {/* Image */}
+      <motion.div
+        key={current}
+        className="relative z-10 max-w-5xl w-full mx-6"
+        style={{ maxHeight: "85dvh", aspectRatio: "4/3" }}
+        initial={{ opacity: 0, scale: 0.94 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Image
+          src={images[current].src}
+          alt={images[current].alt}
+          fill
+          className="object-contain rounded-2xl"
+          unoptimized
+          sizes="90vw"
+        />
+      </motion.div>
+
+      {/* Prev / Next */}
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={(e) => { e.stopPropagation(); prev(); }}
+            className="absolute left-4 z-10 w-11 h-11 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: "rgba(255,255,255,0.1)", color: "#fff" }}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); next(); }}
+            className="absolute right-4 z-10 w-11 h-11 rounded-full flex items-center justify-center transition-colors"
+            style={{ background: "rgba(255,255,255,0.1)", color: "#fff" }}
+          >
+            <ChevronRight size={20} />
+          </button>
+        </>
+      )}
+
+      {/* Dots */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+        {images.map((_, i) => (
+          <button
+            key={i}
+            onClick={(e) => { e.stopPropagation(); setCurrent(i); }}
+            className="w-1.5 h-1.5 rounded-full transition-all"
+            style={{ background: i === current ? "#fff" : "rgba(255,255,255,0.3)", transform: i === current ? "scale(1.3)" : "scale(1)" }}
+          />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
 function InfoPanel() {
+  const [lightbox, setLightbox] = useState<number | null>(null);
+
   return (
     <div className="space-y-10 pb-8">
+      <AnimatePresence>
+        {lightbox !== null && (
+          <Lightbox images={GALLERY_IMGS} index={lightbox} onClose={() => setLightbox(null)} />
+        )}
+      </AnimatePresence>
+
       {/* Hero banner */}
       <div className="relative w-full rounded-2xl overflow-hidden" style={{ height: 500 }}>
         <Image
@@ -142,16 +237,22 @@ function InfoPanel() {
         <p className="text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: ACCENT_LT }}>Galería</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {GALLERY_IMGS.map((img, i) => (
-            <motion.div
+            <motion.button
               key={img.src}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: i * 0.05 }}
-              className="relative rounded-xl overflow-hidden"
+              className="relative rounded-xl overflow-hidden cursor-zoom-in"
               style={{ aspectRatio: "4/3" }}
+              onClick={() => setLightbox(i)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <Image src={img.src} alt={img.alt} fill className="object-cover hover:scale-105 transition-transform duration-500" unoptimized sizes="(max-width: 768px) 50vw, 33vw" />
-            </motion.div>
+              <Image src={img.src} alt={img.alt} fill className="object-cover transition-transform duration-500" unoptimized sizes="(max-width: 768px) 50vw, 33vw" />
+              <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center" style={{ background: "rgba(0,0,0,0.3)" }}>
+                <span className="text-xs font-medium px-3 py-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.15)", color: "#fff", backdropFilter: "blur(4px)" }}>Ver</span>
+              </div>
+            </motion.button>
           ))}
         </div>
       </section>
